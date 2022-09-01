@@ -2,25 +2,19 @@ const User = require('../models/User');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 require('dotenv').config();
+const {registerValidate, loginValidate} = require('./validate')
 
 const userController = {
   register: async function (req, res) {
-    const {name, email, password, createdAt} = req.body
-
-    if(!name){
-      return res.status(400).send('Campo nome está vazio, por favor digite um nome')
+    const error = registerValidate(req.body)
+    if(error) {
+      return res.status(400).send(error.message)
     }
-
-    if(!email){
-      return res.status(400).send('Campo e-mail está vazio, por favor digite um e-mail')
-    }
-
-    if(!password){
-      return res.status(400).send('Campo senha está vazio, por favor digite uma senha')
-    }
+    
+    const {name, email, password, type, createdAt} = req.body
 
     const user = {
-      name, email, password: bcrypt.hashSync(password), createdAt
+      name, email, password: bcrypt.hashSync(password), type, createdAt
     }
 
     const selectedUser = await User.findOne({email})
@@ -36,20 +30,17 @@ const userController = {
     }
   },
   login: async function (req, res) {
-    const {email, password} = req.body
+    const error = loginValidate(req.body)
+    if(error) {
+      return res.status(400).send(error.message)
+    }
 
-    if(!email){
-      return res.status(400).send('Digite o e-mail para logar')
-    }
-    
-    if(!password){
-      return res.status(400).send('Digite a senha para logar')
-    }
+    const {email, password} = req.body
 
     try {
       const chekedUser = await User.findOne({email})
       if(bcrypt.compareSync(password, chekedUser.password)) {
-        const token = jwt.sign({_id: chekedUser._id}, process.env.TOKEN_SECRET)
+        const token = jwt.sign({_id: chekedUser._id, type: chekedUser.type}, process.env.TOKEN_SECRET)
         res.header('Authorization-token', token)
         res.status(200).send("Usuário logado")
       }else {

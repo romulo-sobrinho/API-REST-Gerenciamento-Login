@@ -9,10 +9,18 @@ const authContoller = {
 
     try {
       const userVerified = jwt.verify(token, process.env.TOKEN_SECRET)
-      console.log(userVerified)
       req.user = userVerified
-      next();
+      next()
     } catch (error) {
+      return res.status(401).send('Usuário sem permissão de acesso para área de administrador');
+    }
+  },
+
+  checkType: function (req, res, next) {
+    const type = req.user.type
+    if(type === 'admin') {
+      next()
+    } else {
       return res.status(401).send('Usuário sem permissão de acesso para área de administrador');
     }
   }
